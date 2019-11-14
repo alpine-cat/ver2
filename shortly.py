@@ -12,7 +12,7 @@ import os
 
 import redis
 
-from db import get_url, insert_url
+from db import get_url, insert_url, get_count, increment_url
 from utils import get_hostname, is_valid_url
 
 from jinja2 import Environment
@@ -39,6 +39,9 @@ class Shortly(object):
         self.url_map = Map(
             [
                 Rule("/", endpoint="home"),
+		Rule('/<short_id>', endpoint="follow_short_link"),
+		Rule('/create', endpoint="new_url"),
+                Rule('/<short_id>_details', endpoint="short_link_details")
                 # TODO: Добавить ендпоинты на:
                 # - создание шортката
                 # - редирект по ссылке
@@ -71,6 +74,13 @@ class Shortly(object):
     def on_new_url(self, request):
         error = None
         url = ""
+        if request.method=="POST":
+                url = request.form['url']
+                if not is_valid_url(url):
+                        error = 'invalid url'
+                else:
+                        id = insert_url(self.redis, url)
+                        return redirect(b'/%s_details'%id)
         # TODO: Проверить что метод для создания новой ссылки "POST"
         # Проверить валидность ссылки используя is_valid_url
         # Если ссылка верна - создать запись в базе и
@@ -83,15 +93,22 @@ class Shortly(object):
         # TODO: Достать из базы запись о ссылке по ее ид (get_url)
         # если такого ид в базе нет то кинуть 404 (NotFount())
         # заинкрементить переход по ссылке (increment_url)
-        link_target = "/"
+        link_target = get_url(self.redis, short_id)
+        if not link_target:
+                return NotFound()
+        increment_url(self.redis, short_id)
         return redirect(link_target)
 
     def on_short_link_details(self, request, short_id):
         # TODO: Достать из базы запись о ссылке по ее ид (get_url)
         # если такого ид в базе нет то кинуть 404 (NotFount())
+        url = get_url(self.redis, short_id)
+        if not url:
+                return NotFound()
+        click_count = get_count(self.redis, short_id)
+	
         link_target = "/"
 
-        click_count = 0  # достать из базы кол-во кликов по ссылке (get_count)
         return self.render_template(
             "short_link_details.html",
             link_target=link_target,
