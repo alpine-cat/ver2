@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block title %}List of URLs {% endblock %}
+{% block body %}
+<h2>Urls:</h2>
+{%if error%}
+    <p class=error><strong>Error:</strong> {{ error }}
+{% endif %}
+<table>
+    <tr>
+        <td>ID</td>
+        <td>URL</td>
+        <td>Count</td>
+    </tr>
+    {%for url in url_list%}
+    <tr>
+        <td>{{url['id']}}</td>
+        <td class="tableurl">{{url['url']}}</td>
+        <td>{{url['count']}}</td>
+    </tr>
+    {% endfor %}
+</ul>
+{% endblock %}

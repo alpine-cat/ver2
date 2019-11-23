@@ -12,7 +12,7 @@ import os
 
 import redis
 
-from db import get_url, insert_url, get_count, increment_url
+from db import get_url, insert_url, get_count, increment_url, get_list_urls
 from utils import get_hostname, is_valid_url
 
 from jinja2 import Environment
@@ -39,9 +39,10 @@ class Shortly(object):
         self.url_map = Map(
             [
                 Rule("/", endpoint="home"),
-		Rule('/<short_id>', endpoint="follow_short_link"),
-		Rule('/create', endpoint="new_url"),
-                Rule('/<short_id>_details', endpoint="short_link_details")
+                Rule('/<short_id>', endpoint="follow_short_link"),
+                Rule('/create', endpoint="new_url"),
+                Rule('/<short_id>_details', endpoint="short_link_details"),
+                Rule('/list', endpoint='list_url')
                 # TODO: Добавить ендпоинты на:
                 # - создание шортката
                 # - редирект по ссылке
@@ -80,7 +81,7 @@ class Shortly(object):
                         error = 'invalid url'
                 else:
                         id = insert_url(self.redis, url)
-                        return redirect(b'/%s_details'%id)
+                        return redirect('/%s_details'%str(id))
         # TODO: Проверить что метод для создания новой ссылки "POST"
         # Проверить валидность ссылки используя is_valid_url
         # Если ссылка верна - создать запись в базе и
@@ -118,7 +119,11 @@ class Shortly(object):
 
     def on_list_url(self, request):
         # TODO: ДЗ
-        pass
+        error = None
+        list_urls = get_list_urls(self.redis)
+        if not list_urls:
+            error = "no urls found"
+        return self.render_template("list_url.html", error=error, url_list=list_urls)
 
     def error_404(self):
         response = self.render_template("404.html")

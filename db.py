@@ -5,10 +5,9 @@ def insert_url(redis, url):
     short_id = redis.get("reverse-url:" + url)
     if short_id is not None:
         return short_id
-    url_num = redis.incr("last-url-id")
-    short_id = base36_encode(url_num)
-    redis.set("url-target:" + short_id, url)
-    redis.set("reverse-url:" + url, short_id)
+    short_id = redis.incr("last-url-id")
+    redis.set("url-target:" + str(short_id), url)
+    redis.set("reverse-url:" + url, str(short_id))
     return short_id
 
 
@@ -25,4 +24,13 @@ def get_count(redis, short_id):
 
 
 def get_list_urls(redis):
-    pass
+    url_num = redis.get("last-url-id").decode('utf-8')
+    list_urls = list()
+    for id in range(1, int(url_num)):
+        d_url = dict()
+        short_id = str(id)
+        d_url['id'] = short_id
+        d_url['url'] = get_url(redis, short_id)
+        d_url['count'] = get_count(redis, short_id)
+        list_urls.append(d_url)
+    return list_urls
